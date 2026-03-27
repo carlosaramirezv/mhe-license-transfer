@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { TransferProvider } from './context/TransferContext';
 import DashboardPage from './pages/DashboardPage';
 import TransferPage from './pages/TransferPage';
@@ -16,6 +17,7 @@ function App({ basename }: AppProps) {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
+        <NotificationProvider>
         <TransferProvider>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
@@ -26,6 +28,7 @@ function App({ basename }: AppProps) {
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </TransferProvider>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

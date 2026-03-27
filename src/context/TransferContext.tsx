@@ -24,6 +24,7 @@ import {
 } from '../data/mockData';
 import { generateId, sleep } from '../lib/utils';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 
 interface TransferContextType {
   auditRecords: AuditRecord[];
@@ -55,6 +56,7 @@ const TransferContext = createContext<TransferContextType | undefined>(undefined
 
 export function TransferProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { notify } = useNotification();
   const [auditRecords, setAuditRecords] = useState<AuditRecord[]>(mockAuditRecords);
   const [batchJobs, setBatchJobs] = useState<BatchJob[]>(mockBatchJobs);
   const [currentBatchJob, setCurrentBatchJob] = useState<BatchJob | null>(null);
@@ -200,7 +202,26 @@ export function TransferProvider({ children }: { children: ReactNode }) {
     setAuditRecords(prev => [auditRecord, ...prev]);
 
     if (shouldFail) {
+      notify(
+        'transferFailed',
+        'Transfer Failed',
+        `${preview.product.title} — ${preview.transactionType} of ${preview.quantity} licenses failed`
+      );
       throw new Error(auditRecord.errorDetails);
+    }
+
+    notify(
+      'transferComplete',
+      'Transfer Complete',
+      `${preview.product.title} — ${preview.transactionType} of ${preview.quantity} licenses applied`
+    );
+
+    if (preview.transactionType === 'sale' && preview.distributorNewQuantity < 100) {
+      notify(
+        'lowInventory',
+        'Low Distributor Inventory',
+        `${preview.distributorAccount.name} has only ${preview.distributorNewQuantity} licenses remaining for ${preview.product.title}`
+      );
     }
 
     if (!shouldFail) {
@@ -360,7 +381,13 @@ export function TransferProvider({ children }: { children: ReactNode }) {
       processedRecords: validResults.length,
       completedAt: new Date(),
     });
-  }, [executeTransfer]);
+
+    notify(
+      'batchComplete',
+      'Batch Processing Complete',
+      `${job.fileName} — ${validResults.length} of ${job.totalRecords} records processed`
+    );
+  }, [executeTransfer, notify]);
 
   const getBatchJobStatus = useCallback((jobId: string): BatchJob | undefined => {
     return batchJobs.find(j => j.id === jobId);

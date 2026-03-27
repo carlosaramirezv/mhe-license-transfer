@@ -23,20 +23,15 @@ import {
   Alert,
 } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { mockUsers } from '../data/mockData';
 import type { UserRole } from '../types';
 
 export default function SettingsPage() {
   const { user, login } = useAuth();
+  const { permission, preferences, requestPermission, setPreference } = useNotification();
   const [selectedUserId, setSelectedUserId] = useState(user?.id || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  const [notifications, setNotifications] = useState({
-    transferComplete: true,
-    batchComplete: true,
-    transferFailed: true,
-    lowInventory: false,
-  });
 
   const handleSwitchUser = () => {
     const selectedUser = mockUsers.find(u => u.id === selectedUserId);
@@ -149,34 +144,47 @@ export default function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {permission === 'default' && (
+              <Alert variant="info">
+                Enable desktop notifications to receive alerts for transfers and batch jobs.
+                <div className="mt-2">
+                  <Button size="sm" onClick={requestPermission}>
+                    <Bell className="h-4 w-4 mr-2" />
+                    Enable Desktop Notifications
+                  </Button>
+                </div>
+              </Alert>
+            )}
+            {permission === 'denied' && (
+              <Alert variant="warning" title="Notifications Blocked">
+                Notifications are blocked in your browser. Open your browser's site settings to allow notifications for this site, then reload the page.
+              </Alert>
+            )}
+            {permission === 'granted' && (
+              <Alert variant="success" title="Notifications Enabled">
+                Desktop notifications are active. Alerts will appear as macOS notifications.
+              </Alert>
+            )}
             <div className="space-y-3">
               {[
-                { key: 'transferComplete', label: 'Transfer completed successfully' },
-                { key: 'batchComplete', label: 'Batch processing completed' },
-                { key: 'transferFailed', label: 'Transfer failed or rolled back' },
-                { key: 'lowInventory', label: 'Low distributor inventory warning' },
+                { key: 'transferComplete' as const, label: 'Transfer completed successfully' },
+                { key: 'batchComplete' as const, label: 'Batch processing completed' },
+                { key: 'transferFailed' as const, label: 'Transfer failed or rolled back' },
+                { key: 'lowInventory' as const, label: 'Low distributor inventory warning' },
               ].map((item) => (
                 <label key={item.key} className="flex items-center justify-between cursor-pointer">
                   <span className="text-sm text-gray-700">{item.label}</span>
                   <button
                     type="button"
-                    onClick={() =>
-                      setNotifications({
-                        ...notifications,
-                        [item.key]: !notifications[item.key as keyof typeof notifications],
-                      })
-                    }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      notifications[item.key as keyof typeof notifications]
-                        ? 'bg-primary-600'
-                        : 'bg-gray-200'
+                    disabled={permission !== 'granted'}
+                    onClick={() => setPreference(item.key, !preferences[item.key])}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 ${
+                      preferences[item.key] ? 'bg-primary-600' : 'bg-gray-200'
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        notifications[item.key as keyof typeof notifications]
-                          ? 'translate-x-6'
-                          : 'translate-x-1'
+                        preferences[item.key] ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
